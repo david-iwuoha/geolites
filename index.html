@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GEO-ELITES Birthday Registry</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js" type="module"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js" type="module"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js" type="module"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #020617; color: #e2e8f0; }
+        .glass-card { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(51, 65, 85, 0.5); }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        .status-popup { animation: slideIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <!-- App Container -->
+    <div id="app" class="pb-12">
+        <!-- Navigation -->
+        <nav class="flex justify-between items-center p-6 bg-slate-900/50 border-b border-slate-800 sticky top-0 z-50 backdrop-blur-md">
+            <div class="flex items-center gap-3">
+                <div class="bg-amber-500 p-2 rounded-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-900"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+                </div>
+                <div>
+                    <h1 class="text-xl font-black text-white tracking-tighter">GEO-ELITES</h1>
+                    <p class="text-[10px] text-amber-500 font-bold uppercase tracking-[0.2em]">Geosciences 200L</p>
+                </div>
+            </div>
+            <button id="adminBtn" class="text-xs font-bold text-slate-400 hover:text-white flex items-center gap-2 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                ADMIN ACCESS
+            </button>
+        </nav>
+
+        <main class="max-w-4xl mx-auto p-6 mt-12">
+            <!-- Search View -->
+            <div id="searchView" class="space-y-8 text-center">
+                <div class="space-y-4">
+                    <h2 class="text-4xl md:text-5xl font-black text-white tracking-tight italic">BIRTHDAY REGISTRY</h2>
+                    <p class="text-slate-400 max-w-lg mx-auto">Search for your name or matric number to continue.</p>
+                </div>
+
+                <div class="relative max-w-2xl mx-auto group">
+                    <input type="text" id="searchInput" placeholder="Type name or matric number..." class="block w-full pl-6 pr-6 py-5 bg-slate-900 border border-slate-800 rounded-3xl text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all text-lg shadow-2xl">
+                    <div id="searchResults" class="absolute mt-4 w-full bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden z-50 hidden">
+                        <!-- Search results dynamically injected -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form View -->
+            <div id="formView" class="hidden max-w-md mx-auto">
+                <button id="backToSearch" class="flex items-center gap-2 text-slate-500 hover:text-white mb-8 font-bold text-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg> CHANGE STUDENT
+                </button>
+                <div class="glass-card rounded-[2.5rem] overflow-hidden shadow-2xl">
+                    <div class="bg-amber-500 p-8 text-slate-900">
+                        <p class="text-[10px] font-black uppercase tracking-widest opacity-70 mb-1">Confirm Identity</p>
+                        <h3 id="formName" class="text-2xl font-black truncate">Student Name</h3>
+                        <p id="formMatric" class="font-mono text-sm font-bold opacity-80 underline">Matric Number</p>
+                    </div>
+                    <form id="birthdayForm" class="p-8 space-y-6">
+                        <div class="p-4 bg-slate-950/50 border border-slate-800 rounded-2xl">
+                            <p class="text-[11px] text-amber-500 font-bold leading-relaxed italic">
+                                ( we wont be needing your year of birth because we value your age privacy )
+                            </p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Day</label>
+                                <select required id="birthDay" class="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl text-white focus:border-amber-500 outline-none appearance-none"></select>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Month</label>
+                                <select required id="birthMonth" class="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl text-white focus:border-amber-500 outline-none appearance-none"></select>
+                            </div>
+                        </div>
+                        <button type="submit" class="w-full py-5 bg-white text-slate-950 font-black rounded-2xl shadow-xl hover:bg-amber-400 transition-all">
+                            SUBMIT BIRTHDAY
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Admin View -->
+            <div id="adminView" class="hidden space-y-8">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+                    <div>
+                        <button id="exitAdmin" class="text-slate-500 hover:text-white mb-4 font-bold text-sm flex items-center gap-1"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg> EXIT</button>
+                        <h2 class="text-3xl font-black text-white italic tracking-tighter uppercase">Admin Dashboard</h2>
+                    </div>
+                    <div id="adminControls" class="hidden flex gap-3">
+                        <button id="downloadCsv" class="bg-indigo-600 hover:bg-indigo-500 px-5 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                            DOWNLOAD DOCUMENT
+                        </button>
+                    </div>
+                </div>
+
+                <div id="adminLock" class="max-w-sm mx-auto glass-card p-8 rounded-[2rem] text-center space-y-6">
+                    <div class="bg-slate-950 w-16 h-16 flex items-center justify-center rounded-2xl mx-auto border border-slate-800"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-amber-500"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+                    <input type="password" id="passInput" placeholder="Enter Admin Password..." class="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl text-center text-white focus:border-amber-500 outline-none">
+                </div>
+
+                <div id="adminContent" class="hidden space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="glass-card p-6 rounded-3xl">
+                            <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Status</p>
+                            <div class="text-3xl font-black text-white flex items-center gap-2">
+                                <span id="submittedCount">0</span> / 96 <span class="text-xs text-emerald-500 ml-2">SUBMITTED</span>
+                            </div>
+                        </div>
+                        <div class="glass-card p-6 rounded-3xl">
+                            <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Target Department</p>
+                            <div class="text-xl font-black text-amber-500 uppercase italic">Geosciences 200L</div>
+                        </div>
+                    </div>
+
+                    <div class="glass-card rounded-3xl overflow-hidden overflow-x-auto shadow-2xl">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-800/30">
+                                    <th class="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">S/N</th>
+                                    <th class="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Full Name</th>
+                                    <th class="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Matric No</th>
+                                    <th class="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Option</th>
+                                    <th class="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Date of Birth</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminTableBody" class="divide-y divide-slate-800/50">
+                                <!-- Table rows injected here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Success Popup -->
+            <div id="successPopup" class="hidden fixed inset-0 flex items-center justify-center z-[100] bg-slate-950/90 p-6">
+                <div class="glass-card p-10 rounded-[3rem] text-center max-w-sm status-popup">
+                    <div class="bg-emerald-500/10 w-24 h-24 flex items-center justify-center rounded-full mx-auto mb-6">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    </div>
+                    <h2 class="text-2xl font-black text-white mb-2 uppercase">Successful!</h2>
+                    <p class="text-slate-400 font-medium italic">Enjoy the rest of your year</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+ 
+  const firebaseConfig = {
+    apiKey: "AIzaSyCMP-KPUeYQJiMs3E0REdolwg71YoNJdPw",
+    authDomain: "geolites-52392.firebaseapp.com",
+    projectId: "geolites-52392",
+    storageBucket: "geolites-52392.firebasestorage.app",
+    messagingSenderId: "320940357156",
+    appId: "1:320940357156:web:75e792e97968560cdd8ab1"
+  };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'geo-elites-birthdays';
+
+        // --- THE DATABASE OF 96 STUDENTS ---
+        // (You can edit these names and matric numbers directly here)
+       const STUDENT_LIST = [
+  // GEOPHYSICS
+  { name: "Adesanya Emmanuel Adeayo", matric: "240813001", option: "Geophysics" },
+  { name: "Akinola Covenant Emmanuel", matric: "240813002", option: "Geophysics" },
+  { name: "Shogbanmu Ademola Emmanuel", matric: "240813003", option: "Geophysics" },
+  { name: "Johnson Olufemi Owoichooche", matric: "240813004", option: "Geophysics" },
+  { name: "Chiwike Chidubem Charles", matric: "240813005", option: "Geophysics" },
+  { name: "Emovon Enoch Osaretin", matric: "240813006", option: "Geophysics" },
+  { name: "Etuonuma Chukwufumnanya Dean", matric: "240813007", option: "Geophysics" },
+  { name: "James Chukwuebuka Chidiebube", matric: "240813008", option: "Geophysics" },
+  { name: "Iwuoha David Chukwunaedum", matric: "240813009", option: "Geophysics" },
+  { name: "Deboh-Ajiga Oluwademilade Adeyemi", matric: "240813010", option: "Geophysics" },
+  { name: "Loto Omotola Omorinsola", matric: "240813011", option: "Geophysics" },
+  { name: "Ike Zikora Divine", matric: "240813012", option: "Geophysics" },
+  { name: "Ojo Daniel Fiyinfoluwa", matric: "240813013", option: "Geophysics" },
+  { name: "Fakeye Oluwayoyinsola Nifemi", matric: "240813014", option: "Geophysics" },
+  { name: "Olowu Toluwalase Apollonius", matric: "240813015", option: "Geophysics" },
+  { name: "Ikudehinbu Michael Olamilekan", matric: "240813016", option: "Geophysics" },
+  { name: "Olaniyan Oluwasoromidayo Enoch", matric: "240813017", option: "Geophysics" },
+  { name: "Omon Emmanuel Ebeagbor", matric: "240813018", option: "Geophysics" },
+  { name: "Anjorin Timothy Olamilekan", matric: "240813019", option: "Geophysics" },
+  { name: "Fadipe Adedamola Olusegun", matric: "240813020", option: "Geophysics" },
+  { name: "Okorie Philip Ikechukwu", matric: "240813021", option: "Geophysics" },
+  { name: "Adole Simon Adah", matric: "240813022", option: "Geophysics" },
+  { name: "Israel Benedict Tochukwu", matric: "240813023", option: "Geophysics" },
+  { name: "Otusanwo Ayomide Adeyemi", matric: "240813024", option: "Geophysics" },
+  { name: "Adegbite Ifeoluwa David", matric: "240813025", option: "Geophysics" },
+  { name: "Okupa Moyege Oluwasekunmi", matric: "240813026", option: "Geophysics" },
+  { name: "Akintunde Temiloluwa David", matric: "240813027", option: "Geophysics" },
+  { name: "Olukoya Omotolani Israel Praise", matric: "240813028", option: "Geophysics" },
+  { name: "Ajayi Daniel Ehghongon", matric: "240813029", option: "Geophysics" },
+  { name: "Oyegbami Oluwafemi Mark", matric: "240813030", option: "Geophysics" },
+  { name: "George Eric", matric: "240813031", option: "Geophysics" },
+  { name: "Johnson Faith Ayuba-Edubamoh", matric: "240813032", option: "Geophysics" },
+  { name: "Badru Opeyemi Ayomide", matric: "240813033", option: "Geophysics" },
+  { name: "Olaide Joy Olamide", matric: "240813034", option: "Geophysics" },
+  { name: "Adigun-Temidara Success Ifeoluwa", matric: "240813035", option: "Geophysics" },
+  { name: "Williams Oluwatofunmi Anthonia", matric: "240813036", option: "Geophysics" },
+  { name: "Olasunkanmi Waliat Omowunmi", matric: "240813037", option: "Geophysics" },
+  { name: "Oladipo Gideon Ayoola", matric: "240813038", option: "Geophysics" },
+  { name: "Adewumi Ibukun Olayisade", matric: "240813039", option: "Geophysics" },
+  { name: "Okafor Chidubem David", matric: "240813040", option: "Geophysics" },
+  { name: "Makanjuola Adebola Grace", matric: "240813041", option: "Geophysics" },
+  { name: "Odulana Hafeez Akinkunmi Taiwo", matric: "240813042", option: "Geophysics" },
+  { name: "Fatai Fathia Ashabi", matric: "240813043", option: "Geophysics" },
+  { name: "Odewale Israel Oluwasegun", matric: "240813044", option: "Geophysics" },
+  { name: "Balogun Jomiloju", matric: "240813045", option: "Geophysics" },
+  { name: "Adedeji David Ayomide", matric: "240813046", option: "Geophysics" },
+  { name: "Aderemi Moses Adetayo", matric: "240813047", option: "Geophysics" },
+
+
+
+  // GEOLOGY (Filled)
+  { name: "Ogunjemilusi Ayobami Emmanuel", matric: "240812001", option: "Geology" },
+  { name: "Odusanya Kanyinsola Oluwatosin", matric: "240812002", option: "Geology" },
+  { name: "Uzochukwu Chidera Kyrian", matric: "240812003", option: "Geology" },
+  { name: "Abershi Progress Daniel", matric: "240812004", option: "Geology" },
+  { name: "Igbonla Oluwaseun Rebecca", matric: "240812005", option: "Geology" },
+  { name: "Arowolo Samuel Ayomide", matric: "240812006", option: "Geology" },
+  { name: "Ojomu Ayomide Zainab", matric: "240812007", option: "Geology" },
+  { name: "Ademuyiwa Ewaifeoluwa Issachar", matric: "240812008", option: "Geology" },
+  { name: "Jimoh Abdulsalam Anjolaolohun", matric: "240812009", option: "Geology" },
+  { name: "Olafisoye Nelson Chizim", matric: "240812010", option: "Geology" },
+  { name: "Adejare Abdul Lateef Opeyemi", matric: "240812011", option: "Geology" },
+  { name: "Amao Hikmat Adeola", matric: "240812012", option: "Geology" },
+  { name: "Ologbenla Eniola Adefisayo", matric: "240812013", option: "Geology" },
+  { name: "Asante Joel Richard", matric: "240812014", option: "Geology" },
+  { name: "Ojomu Gbolahan Fadilulahi", matric: "240812015", option: "Geology" },
+  { name: "Sangosanya Janet Oluwatimilehin", matric: "240812016", option: "Geology" },
+  { name: "Dowoni Oluwatimileyin Eniola", matric: "240812017", option: "Geology" },
+  { name: "Alatise Abdulquadri Titilayo", matric: "240812018", option: "Geology" },
+  { name: "Aladetan Adebukola Adebayo", matric: "240812019", option: "Geology" },
+  { name: "Ajayi Samuel Omogbolahan", matric: "240812020", option: "Geology" },
+  { name: "Owolala Joseph Oluwadarasimi", matric: "240812021", option: "Geology" },
+  { name: "Emiyede Diro Great Ewomazino", matric: "240812022", option: "Geology" },
+  { name: "Awonuga Emmanuel Omoniyi", matric: "240812023", option: "Geology" },
+  { name: "Oluyelu Samuel Oluwajomiloju", matric: "240812024", option: "Geology" },
+  { name: "Alo Daniel Oluwanishola", matric: "240812025", option: "Geology" },
+  { name: "King Emmanuel Destine", matric: "240812026", option: "Geology" },
+  { name: "Olowosejeje Olamilekan Abayomi", matric: "240812027", option: "Geology" },
+  { name: "Babatunde Ifedoyin David", matric: "240812028", option: "Geology" },
+  { name: "Nwobodo Adaeze Joy", matric: "240812029", option: "Geology" },
+  { name: "Idowu Adewale Joel", matric: "240812030", option: "Geology" },
+  { name: "Ajala Emmanuel Damilare", matric: "240812031", option: "Geology" },
+  { name: "Badejo Praise Jomiloju", matric: "240812032", option: "Geology" },
+  { name: "Samuel Oluwadamilola Mercy", matric: "240812033", option: "Geology" },
+  { name: "Azeez Fawaz Abiodun", matric: "240812034", option: "Geology" },
+  { name: "Olowe Sola David", matric: "240812036", option: "Geology" },
+  { name: "Odiachi Jane Oluwateniola", matric: "240812038", option: "Geology" },
+  { name: "Amata Jerry Chibuzor", matric: "240812039", option: "Geology" },
+  { name: "Ibrahim Muhammed Awwal", matric: "240812040", option: "Geology" },
+  { name: "Fola Bisuga Tioluwani Emmanuel", matric: "240812042", option: "Geology" },
+  { name: "Koya David Opemipo Darin", matric: "240812043", option: "Geology" },
+  { name: "Olabode Adedapo Mordeca", matric: "240812044", option: "Geology" }
+
+];
+
+
+        let currentUser = null;
+        let selectedStudent = null;
+        let birthdays = {};
+
+        // UI Selectors
+        const views = {
+            search: document.getElementById('searchView'),
+            form: document.getElementById('formView'),
+            admin: document.getElementById('adminView'),
+            success: document.getElementById('successPopup')
+        };
+
+        // Populate selects
+        const bDaySelect = document.getElementById('birthDay');
+        const bMonthSelect = document.getElementById('birthMonth');
+        const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        
+        for(let i=1; i<=31; i++) bDaySelect.innerHTML += `<option value="${i}">${i}</option>`;
+        months.forEach(m => bMonthSelect.innerHTML += `<option value="${m}">${m}</option>`);
+
+        // Firebase Auth
+        const initAuth = async () => {
+            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                await signInWithCustomToken(auth, __initial_auth_token);
+            } else {
+                await signInAnonymously(auth);
+            }
+        };
+        initAuth();
+        onAuthStateChanged(auth, user => {
+            currentUser = user;
+            if(user) syncData();
+        });
+
+        const syncData = () => {
+            const q = collection(db, 'artifacts', appId, 'public', 'data', 'birthdays');
+            onSnapshot(q, (snapshot) => {
+                birthdays = {};
+                snapshot.forEach(doc => { birthdays[doc.id] = doc.data(); });
+                renderAdminTable();
+            });
+        };
+
+        // Search Logic
+        const searchInput = document.getElementById('searchInput');
+        const searchResults = document.getElementById('searchResults');
+
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            if(query.length < 2) {
+                searchResults.classList.add('hidden');
+                return;
+            }
+            const filtered = STUDENT_LIST.filter(s => 
+                s.name.toLowerCase().includes(query) || 
+                s.matric.toLowerCase().includes(query)
+            ).slice(0, 6);
+
+            if(filtered.length > 0) {
+                searchResults.innerHTML = filtered.map(s => `
+                    <button class="search-item w-full flex items-center justify-between px-6 py-4 hover:bg-slate-800 transition-colors text-left border-b border-slate-800 last:border-0" data-matric="${s.matric}">
+                        <div>
+                            <div class="font-bold text-white">${s.name}</div>
+                            <div class="text-xs text-slate-500 font-mono uppercase">${s.matric}</div>
+                        </div>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-600"><path d="m9 18 6-6-6-6"/></svg>
+                    </button>
+                `).join('');
+                searchResults.classList.remove('hidden');
+                
+                document.querySelectorAll('.search-item').forEach(btn => {
+                    btn.onclick = () => {
+                        const matric = btn.getAttribute('data-matric');
+                        selectedStudent = STUDENT_LIST.find(s => s.matric === matric);
+                        showForm();
+                    };
+                });
+            } else {
+                searchResults.classList.add('hidden');
+            }
+        });
+
+        const showForm = () => {
+            document.getElementById('formName').innerText = selectedStudent.name;
+            document.getElementById('formMatric').innerText = selectedStudent.matric;
+            views.search.classList.add('hidden');
+            views.form.classList.remove('hidden');
+            searchResults.classList.add('hidden');
+            searchInput.value = '';
+        };
+
+        // Form Submit
+        document.getElementById('birthdayForm').onsubmit = async (e) => {
+            e.preventDefault();
+            if(!currentUser || !selectedStudent) return;
+            
+            const docId = selectedStudent.matric.replace(/\//g, '_');
+            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'birthdays', docId), {
+                name: selectedStudent.name,
+                matric: selectedStudent.matric,
+                option: selectedStudent.option,
+                day: bDaySelect.value,
+                month: bMonthSelect.value,
+                timestamp: Date.now()
+            });
+
+            views.success.classList.remove('hidden');
+            setTimeout(() => {
+                views.success.classList.add('hidden');
+                views.form.classList.add('hidden');
+                views.search.classList.remove('hidden');
+            }, 3000);
+        };
+
+        // Admin Logic
+        const passInput = document.getElementById('passInput');
+        const adminLock = document.getElementById('adminLock');
+        const adminContent = document.getElementById('adminContent');
+        const adminControls = document.getElementById('adminControls');
+
+        passInput.addEventListener('input', (e) => {
+            if(e.target.value === 'coccyxcoccyx') {
+                adminLock.classList.add('hidden');
+                adminContent.classList.remove('hidden');
+                adminControls.classList.remove('hidden');
+                renderAdminTable();
+            }
+        });
+
+        const renderAdminTable = () => {
+            const tbody = document.getElementById('adminTableBody');
+            let submitted = 0;
+            tbody.innerHTML = STUDENT_LIST.map((s, i) => {
+                const record = birthdays[s.matric.replace(/\//g, '_')];
+                if(record) submitted++;
+                return `
+                    <tr class="hover:bg-slate-800/30 transition-colors">
+                        <td class="p-4 text-xs font-mono text-slate-600">${i+1}</td>
+                        <td class="p-4 font-bold text-white text-sm">${s.name}</td>
+                        <td class="p-4 font-mono text-xs text-slate-500">${s.matric}</td>
+                        <td class="p-4">
+                            <span class="text-[9px] font-black px-2 py-1 rounded ${s.option === 'Geology' ? 'bg-amber-500/10 text-amber-500' : 'bg-indigo-500/10 text-indigo-500'}">
+                                ${s.option.toUpperCase()}
+                            </span>
+                        </td>
+                        <td class="p-4">
+                            ${record ? `<span class="text-emerald-400 font-bold text-sm">${record.day} ${record.month}</span>` : `<span class="text-slate-700 text-xs italic">Pending</span>`}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+            document.getElementById('submittedCount').innerText = submitted;
+        };
+
+        // Download CSV
+        document.getElementById('downloadCsv').onclick = () => {
+            let csv = "S/N,Name,Matric Number,Option,Birthday\n";
+            STUDENT_LIST.forEach((s, i) => {
+                const rec = birthdays[s.matric.replace(/\//g, '_')];
+                const bday = rec ? `${rec.day} ${rec.month}` : "Pending";
+                csv += `${i+1},"${s.name}","${s.matric}","${s.option}","${bday}"\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'GEO_ELITES_Birthdays.csv';
+            a.click();
+        };
+
+        // View Navigation
+        document.getElementById('adminBtn').onclick = () => {
+            views.search.classList.add('hidden');
+            views.form.classList.add('hidden');
+            views.admin.classList.remove('hidden');
+        };
+        document.getElementById('exitAdmin').onclick = () => {
+            views.admin.classList.add('hidden');
+            views.search.classList.remove('hidden');
+            passInput.value = '';
+            adminLock.classList.remove('hidden');
+            adminContent.classList.add('hidden');
+            adminControls.classList.add('hidden');
+        };
+        document.getElementById('backToSearch').onclick = () => {
+            views.form.classList.add('hidden');
+            views.search.classList.remove('hidden');
+        };
+
+    </script>
+</body>
+</html>
